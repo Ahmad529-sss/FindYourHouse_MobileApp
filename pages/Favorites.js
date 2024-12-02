@@ -1,54 +1,71 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useNavigation } from '@react-navigation/native';
 import FavoritePost from '../components/FavoritePost';
-import { useNavigation, useRoute, useFocusEffect } from '@react-navigation/native';
-
+ 
 const Favorites = ({ route }) => {
   const navigation = useNavigation();
-  const [favoritePosts, setFavoritePosts] = useState(route.params?.favoritePosts || []);
-  const setFavorites = route.params?.setFavorites;
-
-  // Reload favorites whenever the screen gains focus
-  useFocusEffect(
-    React.useCallback(() => {
-      if (route.params?.favoritePosts) {
-        setFavoritePosts(route.params.favoritePosts);
+  const favoritePost = route.params?.updatedFavorites;
+  const [favorites, setFavorites] = useState([]);
+ 
+  useEffect(() => {
+    const loadFavorites = async () => {
+      try {
+        const storedFavorites = await AsyncStorage.getItem('favoritesP');
+        const parsedFavorites = storedFavorites ? JSON.parse(storedFavorites) : [];
+ 
+        if (favoritePost && favoritePost.id && !parsedFavorites.some(post => post.id === favoritePost.id)) {
+          const updatedFavorites = [...parsedFavorites, favoritePost];
+          await AsyncStorage.setItem('favoritesP', JSON.stringify(updatedFavorites));
+          setFavorites(updatedFavorites);
+        } else {
+          setFavorites(parsedFavorites);
+        }
+      } catch (error) {
+        console.error('Error loading favorites:', error);
       }
-    }, [route.params?.favoritePosts])
-  );
-
-  const handleRemoveFavorite = (postToRemove) => {
-    if (setFavorites) {
-      setFavorites((prevFavorites) =>
-        prevFavorites.filter((post) => post.id !== postToRemove.id)
-      );
+    };
+ 
+    loadFavorites();
+  }, [favoritePost]);
+ 
+  const handleDelete = async (postToDelete) => {
+    try {
+      console.log('Deleting:', postToDelete); // Debugging
+      const updatedFavorites = favorites.filter(post => post.id !== postToDelete.id);
+      console.log('Updated Favorites:', updatedFavorites); // Debugging
+      await AsyncStorage.setItem('favoritesP', JSON.stringify(updatedFavorites));
+      setFavorites(updatedFavorites); // Update the state
+    } catch (error) {
+      console.error('Error deleting favorite:', error);
     }
   };
-
+  
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Favorites</Text>
-      {favoritePosts.length > 0 ? (
+      {favorites.length > 0 ? (
         <FlatList
-          data={favoritePosts}
+          data={favorites}
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <FavoritePost
               item={item}
-              onRemoveFavorite={() => handleRemoveFavorite(item)}
+              onRemoveFavorite={() => handleDelete(item)}
             />
           )}
         />
       ) : (
         <Text style={styles.noFavoritesText}>No favorites yet! Add some to your list.</Text>
       )}
-      <TouchableOpacity style={styles.goBackButton} onPress={() => navigation.goBack()}>
+      <TouchableOpacity style={styles.goBackButton} onPress={() =>{ navigation.goBack()}}>
         <Text style={styles.goBackButtonText}>← Go Back</Text>
       </TouchableOpacity>
     </View>
   );
 };
-
+ 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -82,5 +99,5 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
 });
-
+ 
 export default Favorites;

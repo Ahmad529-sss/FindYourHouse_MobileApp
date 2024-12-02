@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, Button } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
@@ -10,13 +10,23 @@ import Home from './pages/Home';
 import AddPost from './pages/AddPost';
 import PostDetails from './pages/PostDetails';
 import Favorites from './pages/Favorites';
+import Login from './pages/login 1';
+import Register from './pages/register 1';
 
-// Placeholder screens
-const UserScreen = () => <View style={styles.screen}><Text>User Page</Text></View>;
+// Placeholder User Information screen
+const UserInfo = ({ user, setUser }) => (
+  <View style={styles.screen}>
+    <Text style={styles.title}>Welcome, {user.name}!</Text>
+    <Text>Email: {user.email}</Text>
+    <Text style={styles.link} onPress={() => setUser(null)}>
+      Log Out
+    </Text>
+  </View>
+);
 
 // Tab Navigator
 const Tab = createBottomTabNavigator();
-function TabNavigator() {
+function TabNavigator({ user, setUser }) {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -32,8 +42,8 @@ function TabNavigator() {
         },
         tabBarActiveTintColor: '#007bff',
         tabBarInactiveTintColor: 'gray',
-        headerStyle: { backgroundColor: '#007bff' }, // Blue header
-        headerTitleStyle: { color: '#ffffff' }, // White text
+        headerStyle: { backgroundColor: '#007bff' },
+        headerTitleStyle: { color: '#ffffff' },
         headerTitleAlign: 'start',
         headerTintColor: '#ffffff',
       })}
@@ -42,7 +52,16 @@ function TabNavigator() {
       <Tab.Screen name="Favorites" component={Favorites} />
       <Tab.Screen name="About Us" component={AboutUs} />
       <Tab.Screen name="Contact Us" component={ContactUs} />
-      <Tab.Screen name="User" component={UserScreen} />
+      {/* Conditionally render Login or UserInfo */}
+      <Tab.Screen name="User">
+        {() =>
+          user ? (
+            <UserInfo user={user} setUser={setUser} />
+          ) : (
+            <Login setUser={setUser} />
+          )
+        }
+      </Tab.Screen>
     </Tab.Navigator>
   );
 }
@@ -50,14 +69,17 @@ function TabNavigator() {
 // Stack Navigator
 const Stack = createStackNavigator();
 function App() {
+  const [user, setUser] = useState(null); // Track authentication state
+
   return (
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen
           name="Tabs"
-          component={TabNavigator}
-          options={{ headerShown: false }} // Hide header for tabs
-        />
+          options={{ headerShown: false }}
+        >
+          {() => <TabNavigator user={user} setUser={setUser} />}
+        </Stack.Screen>
         <Stack.Screen
           name="AddPost"
           component={AddPost}
@@ -69,6 +91,9 @@ function App() {
           }}
         />
         <Stack.Screen name="PostDetails" component={PostDetails} />
+        <Stack.Screen name="Register">
+          {() => <Register setUser={setUser} />}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );
@@ -80,6 +105,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#f9f9f9',
+  },
+  title: {
+    fontSize: 24,
+    marginBottom: 10,
+  },
+  link: {
+    color: 'blue',
+    marginTop: 10,
+    fontSize: 16,
+    textDecorationLine: 'underline',
   },
 });
 

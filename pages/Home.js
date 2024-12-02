@@ -11,7 +11,7 @@ import {
 import { Picker } from '@react-native-picker/picker';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import PostCard from '../components/PostCard';
-import Slider from '@react-native-community/slider';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const Home = () => {
   const navigation = useNavigation();
@@ -144,13 +144,17 @@ const Home = () => {
   const [isFilterVisible, setIsFilterVisible] = useState(false);
   const [selectedCity, setSelectedCity] = useState("all");
   const [selectedCategory, setSelectedCategory] = useState("all");
-  const [priceRange, setPriceRange] = useState({ min: 200, max: 10000 });
+  const [selectedPrice, setSelectedPrice] = useState('all');
   const [filteredPosts, setFilteredPosts] = useState(posts); // Filtered posts state
   const [search, setSearch] = useState('');
 
   useEffect(() => {
     applyFilters();
-  }, [selectedCity, selectedCategory, priceRange, search, posts]);
+  }, [selectedCity, selectedCategory, selectedPrice, search, posts]);
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
 
   const toggleFilterVisibility = () => setIsFilterVisible(!isFilterVisible);
 
@@ -168,9 +172,9 @@ const Home = () => {
     }
 
     // Filter by price range
-    filtered = filtered.filter(
-      (post) => post.price >= priceRange.min && post.price <= priceRange.max
-    );
+    if (selectedPrice !== 'all') {
+      filtered = filtered.filter((post) => post.price <= parseInt(selectedPrice));
+    }
 
     // Filter by search query
     if (search.trim() !== '') {
@@ -182,12 +186,31 @@ const Home = () => {
     setFilteredPosts(filtered);
   };
 
-  const addToFavorites = (post) => {
-    if (!favorites.some((favPost) => favPost.id === post.id)) {
-      setFavorites((prevFavorites) => [...prevFavorites, post]);
+  const loadFavorites = async () => {
+    try {
+      const storedFavorites = await AsyncStorage.getItem('favoritesP');
+      if (storedFavorites) {
+        setFavorites(JSON.parse(storedFavorites));
+      }
+    } catch (error) {
+      console.error('Error loading favorites:', error);
     }
-    navigation.navigate('Favorites', { favoritePosts: favorites, setFavorites });
   };
+
+  const addToFavorites = async (post) => {
+    try {
+      if (!favorites.some((favPost) => favPost.id === post.id)) {
+        const updatedFavorites = [...favorites, post];
+        setFavorites(updatedFavorites);
+        await AsyncStorage.setItem('favoritesP', JSON.stringify(updatedFavorites));
+        navigation.navigate('Favorites', { updatedFavorites: post });
+      }
+    } catch (error) {
+      console.error('Error adding to favorites:', error);
+    }
+  };
+
+  
 
   const renderPost = ({ item }) => (
     <PostCard
@@ -213,39 +236,24 @@ const Home = () => {
 
       {isFilterVisible && (
         <View style={styles.filterContainer}>
-           <Text style={styles.label}>
-                  Filter by price: <Text style={styles.value}>{priceRange.min}$ - {priceRange.max}$</Text>
-                </Text>
-                <Slider
-                  style={{ width: '100%', height: 40 }}
-                  minimumValue={200}
-                  maximumValue={priceRange.max - 100} // Prevent overlap
-                  step={100}
-                  value={priceRange.min}
-                  onValueChange={(value) => {
-                    if (value !== priceRange.min) {
-                      setPriceRange((prevRange) => ({ ...prevRange, min: value }));
-                    }
-                  }}
-                  minimumTrackTintColor="#1a73e8"
-                  maximumTrackTintColor="#d3d3d3"
-                  thumbTintColor="#1a73e8"
-                />
-                <Slider
-                  style={{ width: '100%', height: 40 }}
-                  minimumValue={priceRange.min + 100} // Prevent overlap
-                  maximumValue={10000}
-                  step={100}
-                  value={priceRange.max}
-                  onValueChange={(value) => {
-                    if (value !== priceRange.max) {
-                      setPriceRange((prevRange) => ({ ...prevRange, max: value }));
-                    }
-                  }}
-                  minimumTrackTintColor="#1a73e8"
-                  maximumTrackTintColor="#d3d3d3"
-                  thumbTintColor="#1a73e8"
-                />
+           <Text style={styles.label}>By price:</Text>
+    <Picker
+      selectedValue={selectedPrice}
+      onValueChange={(value) => setSelectedPrice(value)}
+      style={styles.picker}
+    >
+      <Picker.Item label="All" value="all" />
+      <Picker.Item label="$1000" value="1000" />
+      <Picker.Item label="$2000" value="2000" />
+      <Picker.Item label="$3000" value="3000" />
+      <Picker.Item label="$4000" value="4000" />
+      <Picker.Item label="$5000" value="5000" />
+      <Picker.Item label="$6000" value="6000" />
+      <Picker.Item label="$7000" value="7000" />
+      <Picker.Item label="$8000" value="8000" />
+      <Picker.Item label="$9000" value="9000" />
+      <Picker.Item label="$10000" value="10000" />
+    </Picker>
           <Text style={styles.label}>By city:</Text>
           <Picker
             selectedValue={selectedCity}

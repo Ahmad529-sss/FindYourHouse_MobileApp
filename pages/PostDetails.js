@@ -14,7 +14,6 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 const { width } = Dimensions.get('window');
 
 const PostDetails = () => {
-  const navigation = useNavigation();
   const route = useRoute();
   const post = route.params?.post;
 
